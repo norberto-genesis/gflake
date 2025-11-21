@@ -1,163 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>GFlake Converter</title>
-<style>
-  body {
-    background: #f2f2f2;
-    font-family: Arial, sans-serif;
-    padding: 30px;
-  }
+  <head>
+    <meta charset="UTF-8" />
+    <title>GFlake Converter</title>
+    <style>
+      body {
+        background: #f2f2f2;
+        font-family: Arial, sans-serif;
+        padding: 30px;
+      }
 
-  .container {
-    max-width: 900px;
-    margin: auto;
-    background: #fff;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  }
+      .container {
+        max-width: 900px;
+        margin: auto;
+        background: #fff;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      }
 
-  h1 {
-    text-align: center;
-    margin-bottom: 30px;
-    font-size: 28px;
-  }
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 28px;
+      }
 
-  .panels {
-    display: flex;
-    gap: 20px;
-  }
+      .panels {
+        display: flex;
+        gap: 20px;
+      }
 
-  .panel {
-    flex: 1;
-    background: #fafafa;
-    border-radius: 10px;
-    padding: 20px;
-    border: 1px solid #ddd;
-  }
+      .panel {
+        flex: 1;
+        background: #fafafa;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid #ddd;
+      }
 
-  h2 {
-    margin-top: 0;
-  }
+      h2 {
+        margin-top: 0;
+      }
 
-  label {
-    display: block;
-    margin-top: 15px;
-    font-weight: bold;
-  }
+      label {
+        display: block;
+        margin-top: 15px;
+        font-weight: bold;
+      }
 
-  input {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    border-radius: 6px;
-    border: 1px solid #aaa;
-    font-size: 16px;
-  }
-</style>
-</head>
-<body>
+      input {
+        width: 95%;
+        padding: 10px;
+        margin-top: 5px;
+        border-radius: 6px;
+        border: 1px solid #aaa;
+        font-size: 16px;
+      }
 
-<div class="container">
-  <h1>GFlake Converter</h1>
+      .code-panel {
+        margin-top: 20px;
+        background: #fafafa;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid #ddd;
+      }
 
-  <div class="panels">
-    <!-- Timestamp → Date -->
-    <div class="panel">
-      <h2>Timestamp ➝ Date</h2>
+      pre {
+        background: #2d2d2d;
+        color: #f8f8f2;
+        padding: 15px;
+        border-radius: 6px;
+        overflow-x: auto;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 10px 0 0 0;
+      }
 
-      <label>GFlake ID (long):</label>
-      <input id="gfId" type="text" placeholder="Paste GFlake ID…" />
+      code {
+        font-family: "Courier New", monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>GFlake Converter</h1>
 
-      <label>Extracted Date (UTC):</label>
-      <input id="gfDate" type="text" readonly />
+      <div class="panels">
+        <!-- Timestamp → Date -->
+        <div class="panel">
+          <h2>Timestamp ➝ Date</h2>
+
+          <label>GFlake ID (long):</label>
+          <input id="gfId" type="text" placeholder="Paste GFlake ID…" />
+
+          <label>Extracted Date (UTC):</label>
+          <input id="gfDate" type="text" readonly />
+        </div>
+
+        <!-- Date → Timestamp -->
+        <div class="panel">
+          <h2>Date ➝ GFlake Timestamp</h2>
+
+          <label>Date (YYYY-MM-DD HH:mm:ss):</label>
+          <input id="dateInput" type="text" placeholder="2025-11-01 00:00:00" />
+
+          <label>GFlake ID (timestamp << 22):</label>
+          <input id="timestampResult" type="text" readonly />
+        </div>
+      </div>
+
+      <div class="code-panel">
+        <h2>Postgres SQL converter:</h2>
+        <pre><code>SELECT
+    TO_TIMESTAMP((timestamp &gt;&gt; 22) / 1000.0) AS date,
+    TO_CHAR(TO_TIMESTAMP((timestamp &gt;&gt; 22) / 1000.0), 'YYYY-MM-DD HH:MM:SS') AS date_string,
+    *
+from table;</code></pre>
+      </div>
     </div>
 
-    <!-- Date → Timestamp -->
-    <div class="panel">
-      <h2>Date ➝ GFlake Timestamp</h2>
+    <script>
+      // --- GFlake core functions ---
 
-      <label>Date (YYYY-MM-DD HH:mm:ss):</label>
-      <input id="dateInput" type="text" placeholder="2025-11-01 00:00:00" />
+      // Extract Date from GFlake ID (timestamp stored in high bits)
+      // Extract Date from GenesisFlake ID (UTC)
+      function gfIdToDate(id) {
+        try {
+          const big = BigInt(id);
+          const timestampMs = big >> 22n;
+          return new Date(Number(timestampMs)); // already UTC internally
+        } catch {
+          return null;
+        }
+      }
 
-      <label>GFlake ID (timestamp << 22):</label>
-      <input id="timestampResult" type="text" readonly />
-    </div>
-  </div>
-</div>
+      // Convert date → GenesisFlake ID (force UTC)
+      function dateToGfId(dateStr) {
+        try {
+          // FORCE UTC by appending "Z"
+          const ms = Date.parse(dateStr + "Z");
+          if (isNaN(ms)) return null;
 
-<script>
-// --- GFlake core functions ---
+          const id = BigInt(ms) << 22n;
+          return id.toString();
+        } catch {
+          return null;
+        }
+      }
 
-// Extract Date from GFlake ID (timestamp stored in high bits)
-// Extract Date from GenesisFlake ID (UTC)
-function gfIdToDate(id) {
-  try {
-    const big = BigInt(id);
-    const timestampMs = big >> 22n;
-    return new Date(Number(timestampMs)); // already UTC internally
-  } catch {
-    return null;
-  }
-}
+      // --- UI Bindings ---
 
-// Convert date → GenesisFlake ID (force UTC)
-function dateToGfId(dateStr) {
-  try {
-    // FORCE UTC by appending "Z"
-    const ms = Date.parse(dateStr + "Z");
-    if (isNaN(ms)) return null;
+      // Timestamp → Date
+      document.getElementById("gfId").addEventListener("input", () => {
+        const input = document.getElementById("gfId").value.trim();
+        const date = gfIdToDate(input);
 
-    const id = BigInt(ms) << 22n;
-    return id.toString();
-  } catch {
-    return null;
-  }
-}
+        document.getElementById("gfDate").value = date
+          ? date.toISOString().replace("T", " ").replace("Z", "")
+          : "Invalid";
+      });
 
-// --- UI Bindings ---
+      // Date → Timestamp
+      document.getElementById("dateInput").addEventListener("input", () => {
+        const dateStr = document.getElementById("dateInput").value.trim();
+        const id = dateToGfId(dateStr);
 
-// Timestamp → Date
-document.getElementById("gfId").addEventListener("input", () => {
-  const input = document.getElementById("gfId").value.trim();
-  const date = gfIdToDate(input);
+        document.getElementById("timestampResult").value = id || "Invalid";
+      });
 
-  document.getElementById("gfDate").value =
-    date ? date.toISOString().replace("T", " ").replace("Z", "") : "Invalid";
-});
+      // --- UI Bindings ---
 
-// Date → Timestamp
-document.getElementById("dateInput").addEventListener("input", () => {
-  const dateStr = document.getElementById("dateInput").value.trim();
-  const id = dateToGfId(dateStr);
+      // Timestamp → Date
+      document.getElementById("gfId").addEventListener("input", () => {
+        const input = document.getElementById("gfId").value.trim();
+        const date = gfIdToDate(input);
 
-  document.getElementById("timestampResult").value =
-    id || "Invalid";
-});
+        document.getElementById("gfDate").value = date
+          ? date.toISOString().replace("T", " ").replace("Z", "")
+          : "Invalid";
+      });
 
+      // Date → Timestamp
+      document.getElementById("dateInput").addEventListener("input", () => {
+        const dateStr = document.getElementById("dateInput").value.trim();
+        const id = dateToGfId(dateStr);
 
-// --- UI Bindings ---
-
-// Timestamp → Date
-document.getElementById("gfId").addEventListener("input", () => {
-  const input = document.getElementById("gfId").value.trim();
-  const date = gfIdToDate(input);
-
-  document.getElementById("gfDate").value =
-    date ? date.toISOString().replace("T", " ").replace("Z", "") : "Invalid";
-});
-
-// Date → Timestamp
-document.getElementById("dateInput").addEventListener("input", () => {
-  const dateStr = document.getElementById("dateInput").value.trim();
-  const id = dateToGfId(dateStr);
-
-  document.getElementById("timestampResult").value =
-    id || "Invalid";
-});
-</script>
-
-</body>
+        document.getElementById("timestampResult").value = id || "Invalid";
+      });
+    </script>
+  </body>
 </html>
