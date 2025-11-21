@@ -92,20 +92,22 @@
 // --- GFlake core functions ---
 
 // Extract Date from GFlake ID (timestamp stored in high bits)
+// Extract Date from GenesisFlake ID (UTC)
 function gfIdToDate(id) {
   try {
     const big = BigInt(id);
     const timestampMs = big >> 22n;
-    return new Date(Number(timestampMs));
+    return new Date(Number(timestampMs)); // already UTC internally
   } catch {
     return null;
   }
 }
 
-// Convert date → GFlake ID
+// Convert date → GenesisFlake ID (force UTC)
 function dateToGfId(dateStr) {
   try {
-    const ms = Date.parse(dateStr);
+    // FORCE UTC by appending "Z"
+    const ms = Date.parse(dateStr + "Z");
     if (isNaN(ms)) return null;
 
     const id = BigInt(ms) << 22n;
@@ -114,6 +116,27 @@ function dateToGfId(dateStr) {
     return null;
   }
 }
+
+// --- UI Bindings ---
+
+// Timestamp → Date
+document.getElementById("gfId").addEventListener("input", () => {
+  const input = document.getElementById("gfId").value.trim();
+  const date = gfIdToDate(input);
+
+  document.getElementById("gfDate").value =
+    date ? date.toISOString().replace("T", " ").replace("Z", "") : "Invalid";
+});
+
+// Date → Timestamp
+document.getElementById("dateInput").addEventListener("input", () => {
+  const dateStr = document.getElementById("dateInput").value.trim();
+  const id = dateToGfId(dateStr);
+
+  document.getElementById("timestampResult").value =
+    id || "Invalid";
+});
+
 
 // --- UI Bindings ---
 
