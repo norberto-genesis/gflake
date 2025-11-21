@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GFlake Converter</title>
+<style>
+  body {
+    background: #f2f2f2;
+    font-family: Arial, sans-serif;
+    padding: 30px;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: auto;
+    background: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 28px;
+  }
+
+  .panels {
+    display: flex;
+    gap: 20px;
+  }
+
+  .panel {
+    flex: 1;
+    background: #fafafa;
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid #ddd;
+  }
+
+  h2 {
+    margin-top: 0;
+  }
+
+  label {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #aaa;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>GFlake Converter</h1>
+
+  <div class="panels">
+    <!-- Timestamp → Date -->
+    <div class="panel">
+      <h2>Timestamp ➝ Date</h2>
+
+      <label>GFlake ID (long):</label>
+      <input id="gfId" type="text" placeholder="Paste GFlake ID…" />
+
+      <label>Extracted Date (UTC):</label>
+      <input id="gfDate" type="text" readonly />
+    </div>
+
+    <!-- Date → Timestamp -->
+    <div class="panel">
+      <h2>Date ➝ GFlake Timestamp</h2>
+
+      <label>Date (YYYY-MM-DD HH:mm:ss):</label>
+      <input id="dateInput" type="text" placeholder="2025-11-01 00:00:00" />
+
+      <label>GFlake ID (timestamp << 22):</label>
+      <input id="timestampResult" type="text" readonly />
+    </div>
+  </div>
+</div>
+
+<script>
+// --- GFlake core functions ---
+
+// Extract Date from GFlake ID (timestamp stored in high bits)
+function gfIdToDate(id) {
+  try {
+    const big = BigInt(id);
+    const timestampMs = big >> 22n;
+    return new Date(Number(timestampMs));
+  } catch {
+    return null;
+  }
+}
+
+// Convert date → GFlake ID
+function dateToGfId(dateStr) {
+  try {
+    const ms = Date.parse(dateStr);
+    if (isNaN(ms)) return null;
+
+    const id = BigInt(ms) << 22n;
+    return id.toString();
+  } catch {
+    return null;
+  }
+}
+
+// --- UI Bindings ---
+
+// Timestamp → Date
+document.getElementById("gfId").addEventListener("input", () => {
+  const input = document.getElementById("gfId").value.trim();
+  const date = gfIdToDate(input);
+
+  document.getElementById("gfDate").value =
+    date ? date.toISOString().replace("T", " ").replace("Z", "") : "Invalid";
+});
+
+// Date → Timestamp
+document.getElementById("dateInput").addEventListener("input", () => {
+  const dateStr = document.getElementById("dateInput").value.trim();
+  const id = dateToGfId(dateStr);
+
+  document.getElementById("timestampResult").value =
+    id || "Invalid";
+});
+</script>
+
+</body>
+</html>
