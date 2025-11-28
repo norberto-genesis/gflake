@@ -91,8 +91,8 @@
         <div class="panel">
           <h2>Timestamp ➝ Date</h2>
 
-          <label>GFlake ID (long):</label>
-          <input id="gfId" type="text" placeholder="Paste GFlake ID…" />
+          <label>GFlake Timestamp (long):</label>
+          <input id="gfId" type="text" placeholder="Paste GFlake Timestamp…" />
 
           <label>Extracted Date (UTC):</label>
           <input id="gfDate" type="text" readonly />
@@ -105,7 +105,7 @@
           <label>Date (YYYY-MM-DD HH:mm:ss):</label>
           <input id="dateInput" type="text" placeholder="2025-11-01 00:00:00" />
 
-          <label>GFlake ID (timestamp << 22):</label>
+          <label>GFlake Timestamp (timestamp << 22):</label>
           <input id="timestampResult" type="text" readonly />
         </div>
       </div>
@@ -117,6 +117,15 @@
     TO_CHAR(TO_TIMESTAMP((timestamp &gt;&gt; 22) / 1000.0), 'YYYY-MM-DD HH:MM:SS') AS date_string,
     *
 from table;</code></pre>
+      </div>
+      <div class="code-panel">
+        <h2>Excel formula:</h2>
+        <p>
+          First, import file with timestamp as text to avoid precision loss.
+          Considering timestamp to start on cell 'C2':
+        </p>
+        <p>For ex: <code>7397298649136369026 -> 2025-11-20 15:43:53</code></p>
+        <pre><code>=TEXT( DATE(1970,1,1) + (INT(--C2 / 4194304) / 1000 / 86400), "yyyy-mm-dd hh:mm:ss" )</code></pre>
       </div>
     </div>
 
