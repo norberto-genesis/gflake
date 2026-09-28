@@ -115,6 +115,7 @@
         <pre><code>SELECT
     TO_TIMESTAMP((timestamp &gt;&gt; 22) / 1000.0) AS date,
     TO_CHAR(TO_TIMESTAMP((timestamp &gt;&gt; 22) / 1000.0), 'YYYY-MM-DD HH:MM:SS') AS date_string,
+    TO_TIMESTAMP(REGULAR_TIMESTAMP / 1000.0) regular_timestamp, -- regular non-gflake timestamp
     *
 from table;</code></pre>
       </div>
