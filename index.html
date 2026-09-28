@@ -127,6 +127,8 @@ from table;</code></pre>
         </p>
         <p>For ex: <code>7397298649136369026 -> 2025-11-20 15:43:53</code></p>
         <pre><code>=TEXT( DATE(1970,1,1) + (INT(--C2 / 4194304) / 1000 / 86400), "yyyy-mm-dd hh:mm:ss" )</code></pre>
+        <p>Regular non-gflake timestamp, considering timestamp on cell 'D2':</p>
+        <pre><code>=TEXT( DATE(1970,1,1) + (--D2 / 1000 / 86400), "yyyy-mm-dd hh:mm:ss" )</code></pre>
       </div>
     </div>
 
